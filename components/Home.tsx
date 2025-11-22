@@ -19,7 +19,7 @@ const Home: React.FC<HomeProps> = ({ setGameState }) => {
       <header className="mb-8 mt-4 flex justify-between items-center">
         <div>
            <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-finance-accent to-yellow-200 italic">
-             K线训练营
+             欢心K线训练营
            </h1>
            <p className="text-gray-500 text-xs mt-1">BOOTCAMP FOR TRADERS</p>
         </div>
