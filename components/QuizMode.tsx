@@ -1,19 +1,39 @@
-import React, { useState } from 'react';
-import { QUIZ_QUESTIONS } from '../services/mockDataService';
-import { ArrowLeft, CheckCircle, XCircle, Lock, Trophy } from 'lucide-react';
+
+import React, { useState, useEffect } from 'react';
+import { QuizQuestion } from '../types';
+import { getRandomQuizQuestions } from '../services/mockDataService';
+import { ArrowLeft, CheckCircle, XCircle, Trophy, RefreshCw, Home, Brain } from 'lucide-react';
+import { audioService } from '../services/audioService';
 
 interface QuizModeProps {
   onBack: () => void;
 }
 
 const QuizMode: React.FC<QuizModeProps> = ({ onBack }) => {
-  const [currentLevel, setCurrentLevel] = useState(0); // Level corresponds to question index for simplicity
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
 
-  const question = QUIZ_QUESTIONS[currentLevel];
-  const totalLevels = QUIZ_QUESTIONS.length;
+  // Initialize game with 3 random questions
+  useEffect(() => {
+    startNewGame();
+  }, []);
+
+  const startNewGame = () => {
+    const q = getRandomQuizQuestions(3);
+    setQuestions(q);
+    setCurrentIndex(0);
+    setScore(0);
+    setSelectedOption(null);
+    setIsAnswered(false);
+    setIsCorrect(false);
+    setIsFinished(false);
+  };
 
   const handleOptionClick = (index: number) => {
     if (isAnswered) return;
@@ -21,56 +41,128 @@ const QuizMode: React.FC<QuizModeProps> = ({ onBack }) => {
     setSelectedOption(index);
     setIsAnswered(true);
     
-    if (index === question.correctIndex) {
+    const currentQ = questions[currentIndex];
+    if (index === currentQ.correctIndex) {
       setIsCorrect(true);
+      setScore(prev => prev + 1);
+      audioService.playCorrect();
     } else {
       setIsCorrect(false);
+      audioService.playWrong();
     }
   };
 
-  const nextLevel = () => {
-    if (currentLevel < totalLevels - 1) {
-      setCurrentLevel(prev => prev + 1);
+  const handleNext = () => {
+    audioService.playClick();
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex(prev => prev + 1);
       setSelectedOption(null);
       setIsAnswered(false);
       setIsCorrect(false);
     } else {
-      // Finished all levels
-      alert("恭喜通关！");
-      onBack();
+      setIsFinished(true);
+      if(score > questions.length / 2) {
+        audioService.playWin();
+      } else {
+        audioService.playLoss();
+      }
     }
   };
 
+  if (questions.length === 0) return <div className="text-white p-6">Loading Questions...</div>;
+
+  // --- RESULT VIEW ---
+  if (isFinished) {
+    const percentage = Math.round((score / questions.length) * 100);
+    let title = "再接再厉";
+    let message = "基础知识还需要巩固哦。";
+    let colorClass = "text-gray-400";
+    
+    if (percentage === 100) {
+      title = "股市传说";
+      message = "全对！你的理论知识非常扎实。";
+      colorClass = "text-stock-up"; // Red for winner in China
+    } else if (percentage >= 60) {
+      title = "合格交易员";
+      message = "表现不错，继续加油。";
+      colorClass = "text-finance-accent";
+    }
+
+    return (
+        <div className="flex flex-col h-full bg-finance-bg text-white animate-in fade-in duration-500">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                <div className={`w-24 h-24 rounded-full bg-slate-800 border-4 border-slate-700 flex items-center justify-center mb-6 shadow-2xl`}>
+                    <Trophy size={48} className={colorClass} />
+                </div>
+                
+                <h2 className={`text-3xl font-bold mb-2 ${colorClass}`}>{title}</h2>
+                <div className="text-6xl font-mono font-bold mb-4">{score}/{questions.length}</div>
+                <p className="text-gray-400 mb-8">{message}</p>
+
+                <div className="w-full space-y-4">
+                    <button 
+                        onClick={() => {
+                            audioService.playClick();
+                            startNewGame();
+                        }}
+                        className="w-full py-4 bg-finance-accent text-black font-bold rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/20 active:scale-95 transition-transform"
+                    >
+                        <RefreshCw size={20} />
+                        <span>再来一次</span>
+                    </button>
+                    <button 
+                        onClick={() => {
+                            audioService.playClick();
+                            onBack();
+                        }}
+                        className="w-full py-4 bg-slate-800 text-gray-300 font-bold rounded-xl flex items-center justify-center space-x-2 border border-slate-700 active:scale-95 transition-transform"
+                    >
+                        <Home size={20} />
+                        <span>返回大厅</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+  }
+
+  // --- GAME VIEW ---
+  const question = questions[currentIndex];
+  
   return (
     <div className="flex flex-col h-full bg-finance-bg text-white">
       {/* Header */}
       <div className="p-4 flex items-center bg-finance-card border-b border-gray-800">
-        <button onClick={onBack} className="p-2 -ml-2 text-gray-400 hover:text-white">
+        <button onClick={() => { audioService.playClick(); onBack(); }} className="p-2 -ml-2 text-gray-400 hover:text-white">
           <ArrowLeft size={24} />
         </button>
-        <h1 className="flex-1 text-center font-bold text-lg">K线闯关</h1>
+        <h1 className="flex-1 text-center font-bold text-lg">知识闯关</h1>
         <div className="w-8" />
       </div>
 
-      {/* Map / Progress Indicator */}
-      <div className="p-6 overflow-y-auto flex-1">
-        <div className="mb-8 flex justify-center space-x-2">
-            {QUIZ_QUESTIONS.map((_, idx) => (
-                <div 
-                    key={idx} 
-                    className={`h-2 flex-1 rounded-full ${idx <= currentLevel ? 'bg-finance-accent' : 'bg-gray-700'}`}
-                />
-            ))}
+      {/* Progress Bar */}
+      <div className="px-6 py-4">
+        <div className="flex justify-between text-xs text-gray-400 mb-2">
+            <span>Progress</span>
+            <span>{currentIndex + 1} / {questions.length}</span>
         </div>
+        <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div 
+                className="h-full bg-finance-accent transition-all duration-300"
+                style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+            />
+        </div>
+      </div>
 
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
         {/* Question Card */}
         <div className="bg-finance-card border border-gray-700 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-                <Trophy size={64} />
+            <div className="absolute top-0 right-0 p-4 opacity-5">
+                <Brain size={80} />
             </div>
             
-            <span className="text-finance-accent text-sm font-bold tracking-wider uppercase mb-2 block">
-                关卡 {currentLevel + 1}
+            <span className="inline-block px-3 py-1 bg-slate-800 rounded-full text-xs text-gray-400 border border-slate-700 mb-4">
+                Question {currentIndex + 1}
             </span>
             
             <h2 className="text-xl font-bold mb-6 leading-relaxed">
@@ -83,11 +175,11 @@ const QuizMode: React.FC<QuizModeProps> = ({ onBack }) => {
                     
                     if (isAnswered) {
                         if (idx === question.correctIndex) {
-                            btnClass = "w-full p-4 rounded-xl text-left border border-green-500 bg-green-500/20 text-green-400";
+                            btnClass = "w-full p-4 rounded-xl text-left border border-stock-down bg-stock-down/10 text-stock-down"; // Green for correct (using stock-down var which is green)
                         } else if (idx === selectedOption && idx !== question.correctIndex) {
-                            btnClass = "w-full p-4 rounded-xl text-left border border-red-500 bg-red-500/20 text-red-400";
+                            btnClass = "w-full p-4 rounded-xl text-left border border-stock-up bg-stock-up/10 text-stock-up"; // Red for wrong
                         } else {
-                            btnClass = "w-full p-4 rounded-xl text-left border border-gray-800 bg-slate-900/50 text-gray-500";
+                            btnClass = "w-full p-4 rounded-xl text-left border border-gray-800 bg-slate-900/50 text-gray-500 opacity-50";
                         }
                     }
 
@@ -110,24 +202,22 @@ const QuizMode: React.FC<QuizModeProps> = ({ onBack }) => {
 
             {/* Explanation / Next Button */}
             {isAnswered && (
-                <div className="mt-6 pt-6 border-t border-gray-700 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className={`p-4 rounded-lg mb-4 ${isCorrect ? 'bg-green-900/30' : 'bg-red-900/30'}`}>
-                        <p className="font-bold mb-1">{isCorrect ? '回答正确!' : '回答错误'}</p>
-                        <p className="text-sm text-gray-300">{question.explanation}</p>
+                <div className="mt-6 pt-6 border-t border-gray-700 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className={`p-4 rounded-lg mb-4 border-l-4 ${isCorrect ? 'bg-green-900/20 border-green-500' : 'bg-red-900/20 border-red-500'}`}>
+                        <p className={`font-bold mb-1 ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
+                            {isCorrect ? '回答正确!' : '回答错误'}
+                        </p>
+                        <p className="text-sm text-gray-300 leading-relaxed">{question.explanation}</p>
                     </div>
                     
                     <button 
-                        onClick={nextLevel}
-                        className="w-full py-3 bg-finance-accent text-black font-bold rounded-xl shadow-lg shadow-amber-500/20 hover:bg-amber-400 transition-colors"
+                        onClick={handleNext}
+                        className="w-full py-3 bg-finance-accent text-black font-bold rounded-xl shadow-lg shadow-amber-500/20 hover:bg-amber-400 transition-colors flex items-center justify-center"
                     >
-                        {currentLevel < totalLevels - 1 ? '下一关' : '领取奖励'}
+                        {currentIndex < questions.length - 1 ? '下一题' : '查看结果'}
                     </button>
                 </div>
             )}
-        </div>
-        
-        <div className="mt-8 text-center text-gray-500 text-sm">
-            答错没关系，这就是训练的意义。
         </div>
       </div>
     </div>
