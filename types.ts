@@ -22,6 +22,7 @@ export enum GameState {
   RESULT = 'RESULT',
   HISTORY = 'HISTORY',
   INDICATOR = 'INDICATOR',
+  STORY = 'STORY',
 }
 
 export interface Trade {
@@ -79,4 +80,33 @@ export interface IndicatorDef {
   pros: string;
   cons: string;
   difficulty: number; // 1-5
+}
+
+// --- STORY MODE TYPES ---
+
+export interface PlayerStats {
+  cash: number;
+  health: number;    // 0-100
+  insight: number;   // 0-100 (Knowledge)
+  reputation: number;// 0-100
+  turn: number;      // Month/Turn count
+  maxTurn: number;
+}
+
+export interface StoryChoice {
+  text: string;
+  reqInsight?: number; 
+  reqCash?: number;
+  reqReputation?: number; // Added this
+  cost?: number; 
+  effect: (currentStats: PlayerStats) => Partial<PlayerStats>;
+  logText: string; 
+  nextEventId?: string; 
+}
+
+export interface StoryEvent {
+  id: string;
+  text: string;
+  choices: StoryChoice[];
+  isEnding?: boolean;
 }

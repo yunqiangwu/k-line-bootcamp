@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { GameState } from '../types';
-import { TrendingUp, Award, BookOpen, PieChart, PlayCircle, Zap, Activity, Volume2, VolumeX } from 'lucide-react';
+import { TrendingUp, Award, BookOpen, PieChart, PlayCircle, Zap, Activity, Volume2, VolumeX, Coffee } from 'lucide-react';
 import { getGameHistory } from '../services/storageService';
 import { audioService } from '../services/audioService';
 
@@ -161,22 +161,48 @@ const Home: React.FC<HomeProps> = ({ setGameState }) => {
                 </div>
             </button>
 
+             {/* Story Mode (New) */}
+             <button 
+                onClick={() => handleNav(GameState.STORY)}
+                className="relative h-48 rounded-3xl bg-slate-800/50 border border-slate-700/50 p-5 flex flex-col justify-between hover:bg-slate-800 hover:border-blue-500/50 active:scale-[0.98] transition-all backdrop-blur-sm group shadow-lg"
+            >
+                <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Coffee size={60} />
+                </div>
+                <div className="bg-blue-500/20 w-12 h-12 rounded-2xl flex items-center justify-center border border-blue-500/20">
+                    <Coffee className="text-blue-400" size={24} />
+                </div>
+                <div className="text-left z-10">
+                    <h3 className="text-lg font-bold text-white">交易人生</h3>
+                    <p className="text-xs text-gray-400 mt-1">Trader's Journey</p>
+                </div>
+                <div className="flex items-center text-[10px] text-blue-400 font-bold">
+                    <span>PLAY STORY</span>
+                    <div className="w-4 h-4 ml-1 rounded-full border border-blue-500/30 flex items-center justify-center">
+                         <span className="block w-1 h-1 bg-blue-500 rounded-full"></span>
+                    </div>
+                </div>
+            </button>
+
             {/* Indicator Encyclopedia */}
             <button 
                 onClick={() => handleNav(GameState.INDICATOR)}
-                className="relative h-48 rounded-3xl bg-slate-800/50 border border-slate-700/50 p-5 flex flex-col justify-between hover:bg-slate-800 hover:border-emerald-500/50 active:scale-[0.98] transition-all backdrop-blur-sm group shadow-lg"
+                className="relative h-40 rounded-3xl bg-slate-800/50 border border-slate-700/50 p-5 flex flex-col justify-between hover:bg-slate-800 hover:border-emerald-500/50 active:scale-[0.98] transition-all backdrop-blur-sm group shadow-lg col-span-2"
             >
                 <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                     <BookOpen size={60} />
                 </div>
-                <div className="bg-emerald-500/20 w-12 h-12 rounded-2xl flex items-center justify-center border border-emerald-500/20">
-                    <BookOpen className="text-emerald-400" size={24} />
+                <div className="flex items-center gap-4">
+                    <div className="bg-emerald-500/20 w-12 h-12 rounded-2xl flex items-center justify-center border border-emerald-500/20 shrink-0">
+                        <BookOpen className="text-emerald-400" size={24} />
+                    </div>
+                    <div className="text-left z-10">
+                        <h3 className="text-lg font-bold text-white">指标百科</h3>
+                        <p className="text-xs text-gray-400 mt-1">Wiki & Guides</p>
+                    </div>
                 </div>
-                <div className="text-left z-10">
-                    <h3 className="text-lg font-bold text-white">指标百科</h3>
-                    <p className="text-xs text-gray-400 mt-1">Wiki & Guides</p>
-                </div>
-                <div className="flex items-center text-[10px] text-emerald-400 font-bold">
+                
+                <div className="flex items-center text-[10px] text-emerald-400 font-bold mt-2">
                     <span>READ MORE</span>
                     <div className="w-4 h-4 ml-1 rounded-full border border-emerald-500/30 flex items-center justify-center">
                          <span className="block w-1 h-1 bg-emerald-500 rounded-full"></span>

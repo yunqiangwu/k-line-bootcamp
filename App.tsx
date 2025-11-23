@@ -6,6 +6,7 @@ import QuizMode from './components/QuizMode';
 import ResultScreen from './components/ResultScreen';
 import HistoryScreen from './components/HistoryScreen';
 import IndicatorScreen from './components/IndicatorScreen';
+import StoryMode from './components/StoryMode';
 import { GameState, SimulationResult } from './types';
 import { saveGameResult } from './services/storageService';
 
@@ -33,6 +34,8 @@ const App: React.FC = () => {
         return <QuizMode onBack={() => setGameState(GameState.HOME)} />;
       case GameState.INDICATOR:
         return <IndicatorScreen onBack={() => setGameState(GameState.HOME)} />;
+      case GameState.STORY:
+        return <StoryMode onBack={() => setGameState(GameState.HOME)} />;
       case GameState.RESULT:
         return (
           <ResultScreen 
