@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StockData, Trade, SimulationResult } from '../types';
 import StockChart from './StockChart';
-import { generateStockData } from '../services/mockDataService';
-import { Play, Pause, TrendingUp, TrendingDown, FastForward, X } from 'lucide-react';
+import { fetchGameData } from '../services/mockDataService';
+import { Play, Pause, TrendingUp, TrendingDown, FastForward, X, Loader2 } from 'lucide-react';
 import { audioService } from '../services/audioService';
 
 interface SimulationModeProps {
@@ -13,24 +13,29 @@ interface SimulationModeProps {
 
 const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
   const [fullData, setFullData] = useState<StockData[]>([]);
-  // We generate 90 days total. 
-  // History: 0-59 (60 days). 
-  // Game Start: index 60. 
-  // Game End: index 90. 
-  // Total Playable: 30 days.
-  const [currentIndex, setCurrentIndex] = useState(60); 
+  const [currentIndex, setCurrentIndex] = useState(0); 
   const [isPlaying, setIsPlaying] = useState(false);
   const [holdings, setHoldings] = useState(0); // Number of shares
   const [balance, setBalance] = useState(100000); // Initial cash
   const [trades, setTrades] = useState<Trade[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stockInfo, setStockInfo] = useState({ name: '', code: '' });
   
   const speedRef = useRef(500); // ms per tick
 
   useEffect(() => {
-    // Init Game with 90 days of data
-    const data = generateStockData(90); 
-    setFullData(data);
-    setCurrentIndex(60);
+    const init = async () => {
+        setLoading(true);
+        const { data, name, code } = await fetchGameData();
+        setFullData(data);
+        setStockInfo({ name, code });
+        // We typically want 60 days of history before the game starts for indicators
+        // If we got 90 days, start at 60. If less, adjust accordingly.
+        const startIdx = Math.max(0, data.length - 30);
+        setCurrentIndex(startIdx);
+        setLoading(false);
+    };
+    init();
   }, []);
 
   useEffect(() => {
@@ -94,8 +99,8 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
       finalCapital: finalVal,
       yieldRate: finalYield,
       trades,
-      stockName: "虚拟科技 (600XXX)",
-      stockCode: "600XXX",
+      stockName: stockInfo.name,
+      stockCode: stockInfo.code,
       data: fullData
     });
   };
@@ -117,7 +122,19 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
     }
   };
 
-  if (fullData.length === 0) return <div className="text-white p-10">Loading Market Data...</div>;
+  if (loading) {
+      return (
+        <div className="flex flex-col h-full items-center justify-center bg-finance-bg text-white space-y-4">
+            <Loader2 size={48} className="animate-spin text-finance-accent" />
+            <div className="text-center">
+                <p className="text-lg font-bold">加载真实行情中...</p>
+                <p className="text-xs text-gray-500">Initializing Market Data</p>
+            </div>
+        </div>
+      );
+  }
+
+  if (fullData.length === 0) return <div className="text-white p-10">Data Load Error</div>;
 
   return (
     <div className="flex flex-col h-full bg-finance-bg">
@@ -149,7 +166,7 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
 
       {/* Sub Header - Stock Info */}
       <div className="px-4 py-2 bg-slate-900 flex justify-between text-xs font-mono border-b border-gray-800">
-        <span className="text-white">虚拟科技 <span className="text-gray-500">600888</span></span>
+        <span className="text-white">{stockInfo.name} <span className="text-gray-500">{stockInfo.code}</span></span>
         <div className="flex space-x-4">
              <span className={dailyChange >= 0 ? 'text-stock-up' : 'text-stock-down'}>
               现价: {currentDay.close?.toFixed(2)} ({dailyChange > 0 ? '+' : ''}{dailyChange.toFixed(2)}%)

@@ -1,10 +1,63 @@
 
 import { StockData, QuizQuestion, IndicatorDef } from '../types';
 
-// Helper to generate random stock data (Random Walk)
+// --- CALCULATOR ---
+export const calculateIndicators = (data: StockData[]) => {
+  // MA
+  const calculateMA = (dayCount: number) => {
+    for (let i = 0; i < data.length; i++) {
+      if (i < dayCount - 1) continue;
+      let sum = 0;
+      for (let j = 0; j < dayCount; j++) {
+        sum += data[i - j].close;
+      }
+      const val = parseFloat((sum / dayCount).toFixed(2));
+      if (dayCount === 5) data[i].ma5 = val;
+      if (dayCount === 10) data[i].ma10 = val;
+      if (dayCount === 20) data[i].ma20 = val;
+    }
+  };
+  calculateMA(5);
+  calculateMA(10);
+  calculateMA(20);
+
+  // MACD
+  const calculateEMA = (period: number, values: number[]) => {
+    const k = 2 / (period + 1);
+    const emaArray: number[] = [];
+    let ema = values[0];
+    emaArray.push(ema);
+    for (let i = 1; i < values.length; i++) {
+      ema = values[i] * k + ema * (1 - k);
+      emaArray.push(ema);
+    }
+    return emaArray;
+  };
+
+  const closes = data.map(d => d.close);
+  if (closes.length === 0) return;
+
+  const ema12 = calculateEMA(12, closes);
+  const ema26 = calculateEMA(26, closes);
+
+  for (let i = 0; i < data.length; i++) {
+    const dif = ema12[i] - ema26[i];
+    data[i].dif = parseFloat(dif.toFixed(3));
+  }
+
+  const difs = data.map(d => d.dif || 0);
+  const dea = calculateEMA(9, difs);
+
+  for (let i = 0; i < data.length; i++) {
+    data[i].dea = parseFloat(dea[i].toFixed(3));
+    data[i].macd = parseFloat(((data[i].dif! - data[i].dea!) * 2).toFixed(3));
+  }
+};
+
+// --- MOCK GENERATOR ---
 export const generateStockData = (days: number = 90): StockData[] => {
   const data: StockData[] = [];
-  let price = 10 + Math.random() * 5; // Start price ~10-15
+  let price = 10 + Math.random() * 5; 
   let vol = 10000;
 
   for (let i = 0; i < days; i++) {
@@ -12,15 +65,11 @@ export const generateStockData = (days: number = 90): StockData[] => {
     date.setDate(date.getDate() - (days - i));
     const dateStr = date.toISOString().split('T')[0];
 
-    const change = (Math.random() - 0.48) * 0.8; // Slight upward bias
+    const change = (Math.random() - 0.48) * 0.8; 
     const open = price;
     const close = price + change;
-    
-    // Wicks
     const high = Math.max(open, close) + Math.random() * 0.5;
     const low = Math.min(open, close) - Math.random() * 0.5;
-    
-    // Volume noise
     vol = Math.max(5000, vol + (Math.random() - 0.5) * 2000);
 
     data.push({
@@ -35,59 +84,97 @@ export const generateStockData = (days: number = 90): StockData[] => {
     price = close;
   }
 
-  // Calculate MAs
-  const calculateMA = (dayCount: number) => {
-    for (let i = dayCount - 1; i < data.length; i++) {
-      let sum = 0;
-      for (let j = 0; j < dayCount; j++) {
-        sum += data[i - j].close;
-      }
-      if (dayCount === 5) data[i].ma5 = parseFloat((sum / dayCount).toFixed(2));
-      if (dayCount === 10) data[i].ma10 = parseFloat((sum / dayCount).toFixed(2));
-      if (dayCount === 20) data[i].ma20 = parseFloat((sum / dayCount).toFixed(2));
-    }
-  };
-
-  calculateMA(5);
-  calculateMA(10);
-  calculateMA(20);
-
-  // Calculate MACD (12, 26, 9)
-  // EMA function
-  const calculateEMA = (period: number, values: number[]) => {
-    const k = 2 / (period + 1);
-    const emaArray: number[] = [];
-    let ema = values[0];
-    emaArray.push(ema);
-    
-    for (let i = 1; i < values.length; i++) {
-      ema = values[i] * k + ema * (1 - k);
-      emaArray.push(ema);
-    }
-    return emaArray;
-  };
-
-  const closes = data.map(d => d.close);
-  const ema12 = calculateEMA(12, closes);
-  const ema26 = calculateEMA(26, closes);
-
-  for (let i = 0; i < data.length; i++) {
-    const dif = ema12[i] - ema26[i];
-    data[i].dif = parseFloat(dif.toFixed(3));
-  }
-
-  // Calculate DEA (EMA9 of DIF)
-  // We need to handle the initial undefined/zero logic carefully, but for mock data simplicity:
-  const difs = data.map(d => d.dif || 0);
-  const dea = calculateEMA(9, difs);
-
-  for (let i = 0; i < data.length; i++) {
-    data[i].dea = parseFloat(dea[i].toFixed(3));
-    // MACD = (DIF - DEA) * 2
-    data[i].macd = parseFloat(((data[i].dif! - data[i].dea!) * 2).toFixed(3));
-  }
-
+  calculateIndicators(data);
   return data;
+};
+
+// --- REAL DATA SERVICE ---
+const API_BASE = 'https://aks.txy.jajabjbj.top';
+
+interface StockInfo { code: string; name: string; }
+
+const FALLBACK_STOCKS: StockInfo[] = [
+  { code: '600519', name: '贵州茅台' },
+  { code: '300750', name: '宁德时代' },
+  { code: '601318', name: '中国平安' },
+  { code: '000858', name: '五粮液' },
+  { code: '600036', name: '招商银行' },
+  { code: '002594', name: '比亚迪' },
+  { code: '601888', name: '中国中免' },
+  { code: '600900', name: '长江电力' },
+  { code: '000333', name: '美的集团' },
+  { code: '601012', name: '隆基绿能' },
+];
+
+export const fetchGameData = async (): Promise<{ data: StockData[], name: string, code: string }> => {
+  try {
+    let stock: StockInfo;
+    try {
+       // Try fetching random from CSI300
+       const response = await fetch(`${API_BASE}/index/cons-weight/000300?source=eastmoney`);
+       if (response.ok) {
+          const list = await response.json();
+          if (Array.isArray(list) && list.length > 0) {
+              const randomItem = list[Math.floor(Math.random() * list.length)];
+              // API keys are Chinese
+              stock = { code: randomItem['成分券代码'], name: randomItem['成分券名称'] };
+          } else {
+              throw new Error("Empty list");
+          }
+       } else {
+           throw new Error("API Error");
+       }
+    } catch (e) {
+        console.warn("Using fallback list", e);
+        stock = FALLBACK_STOCKS[Math.floor(Math.random() * FALLBACK_STOCKS.length)];
+    }
+
+    const endDateObj = new Date();
+    const twoYearsAgo = new Date();
+    twoYearsAgo.setFullYear(endDateObj.getFullYear() - 2);
+    
+    const minTime = twoYearsAgo.getTime();
+    // Ensure we have at least 6 months buffer from today for the start date
+    const maxTime = endDateObj.getTime() - (180 * 24 * 60 * 60 * 1000); 
+    
+    const randomStartTime = maxTime > minTime ? minTime + Math.random() * (maxTime - minTime) : minTime;
+    
+    const startDate = new Date(randomStartTime);
+    // Request 200 days to be safe for holidays/weekends to get at least 90 trading days
+    const queryEndDate = new Date(randomStartTime + (100 * 24 * 60 * 60 * 1000)); 
+
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+    
+    const histUrl = `${API_BASE}/historical-data/${stock.code}?source=sina&interval=day&adjust=qfq&start_date=${formatDate(startDate)}&end_date=${formatDate(queryEndDate)}`;
+    const histRes = await fetch(histUrl);
+    
+    if (!histRes.ok) throw new Error("Failed to fetch history");
+    
+    const rawData = await histRes.json();
+    if (!Array.isArray(rawData) || rawData.length < 60) throw new Error("Not enough data");
+
+    // Normalize data
+    let data: StockData[] = rawData.map((item: any) => ({
+        date: new Date(item.timestamp).toISOString().split('T')[0],
+        open: item.open,
+        close: item.close,
+        high: item.high,
+        low: item.low,
+        volume: item.volume
+    }));
+
+    // Take first 90 days
+    if (data.length > 90) data = data.slice(0, 90);
+    
+    calculateIndicators(data);
+
+    return { data, name: stock.name, code: stock.code };
+
+  } catch (error) {
+    console.error("Real data fetch failed, using mock.", error);
+    const data = generateStockData(90);
+    return { data, name: '虚拟科技', code: '600XXX' };
+  }
 };
 
 // --- QUIZ DATA ---
