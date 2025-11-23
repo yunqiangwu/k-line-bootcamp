@@ -1,15 +1,21 @@
+
 import React, { useState } from 'react';
 import Home from './components/Home';
 import SimulationMode from './components/SimulationMode';
 import QuizMode from './components/QuizMode';
 import ResultScreen from './components/ResultScreen';
+import HistoryScreen from './components/HistoryScreen';
+import IndicatorScreen from './components/IndicatorScreen';
 import { GameState, SimulationResult } from './types';
+import { saveGameResult } from './services/storageService';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.HOME);
   const [simResult, setSimResult] = useState<SimulationResult | null>(null);
 
   const handleSimulationEnd = (result: SimulationResult) => {
+    // Save to localStorage immediately upon finishing
+    saveGameResult(result);
     setSimResult(result);
     setGameState(GameState.RESULT);
   };
@@ -25,6 +31,8 @@ const App: React.FC = () => {
         );
       case GameState.QUIZ:
         return <QuizMode onBack={() => setGameState(GameState.HOME)} />;
+      case GameState.INDICATOR:
+        return <IndicatorScreen onBack={() => setGameState(GameState.HOME)} />;
       case GameState.RESULT:
         return (
           <ResultScreen 
@@ -33,6 +41,8 @@ const App: React.FC = () => {
             onReplay={() => setGameState(GameState.SIMULATION)}
           />
         );
+      case GameState.HISTORY:
+        return <HistoryScreen onBack={() => setGameState(GameState.HOME)} />;
       case GameState.HOME:
       default:
         return <Home setGameState={setGameState} />;

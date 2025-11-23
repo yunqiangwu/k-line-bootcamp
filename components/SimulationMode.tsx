@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { StockData, Trade, SimulationResult } from '../types';
 import StockChart from './StockChart';
 import { generateStockData } from '../services/mockDataService';
-import { Play, Pause, TrendingUp, TrendingDown, FastForward } from 'lucide-react';
+import { Play, Pause, TrendingUp, TrendingDown, FastForward, X } from 'lucide-react';
 
 interface SimulationModeProps {
   onEnd: (result: SimulationResult) => void;
@@ -11,7 +12,12 @@ interface SimulationModeProps {
 
 const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
   const [fullData, setFullData] = useState<StockData[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(30); // Start with 30 days of history
+  // We generate 90 days total. 
+  // History: 0-59 (60 days). 
+  // Game Start: index 60. 
+  // Game End: index 90. 
+  // Total Playable: 30 days.
+  const [currentIndex, setCurrentIndex] = useState(60); 
   const [isPlaying, setIsPlaying] = useState(false);
   const [holdings, setHoldings] = useState(0); // Number of shares
   const [balance, setBalance] = useState(100000); // Initial cash
@@ -20,10 +26,10 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
   const speedRef = useRef(500); // ms per tick
 
   useEffect(() => {
-    // Init Game
-    const data = generateStockData(120); // 120 days total
+    // Init Game with 90 days of data
+    const data = generateStockData(90); 
     setFullData(data);
-    setCurrentIndex(30);
+    setCurrentIndex(60);
   }, []);
 
   useEffect(() => {
@@ -42,6 +48,7 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
   const dummyData: StockData = { date: '', open: 0, close: 0, high: 0, low: 0, volume: 0 };
   const currentDataSlice = fullData.slice(0, currentIndex + 1);
   const currentDay = fullData[currentIndex] || dummyData;
+  const daysLeft = Math.max(0, fullData.length - 1 - currentIndex);
   
   // Calculate P&L
   const marketValue = holdings * (currentDay.close || 0);
@@ -86,43 +93,60 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
     });
   };
 
+  const handleQuit = () => {
+    onExit();
+  };
+
   if (fullData.length === 0) return <div className="text-white p-10">Loading Market Data...</div>;
 
   return (
     <div className="flex flex-col h-full bg-finance-bg">
       {/* Header Info */}
-      <div className="p-4 bg-finance-card border-b border-gray-800 flex justify-between items-center shadow-md z-10">
-        <div>
-          <h2 className="text-gray-400 text-xs">总资产</h2>
-          <div className={`text-xl font-mono font-bold ${yieldRate >= 0 ? 'text-stock-up' : 'text-stock-down'}`}>
-            {totalAssets.toLocaleString('zh-CN', { style: 'currency', currency: 'CNY' })}
-          </div>
-        </div>
-        <div className="text-right">
-          <h2 className="text-gray-400 text-xs">收益率</h2>
-          <div className={`text-xl font-mono font-bold ${yieldRate >= 0 ? 'text-stock-up' : 'text-stock-down'}`}>
-            {yieldRate > 0 ? '+' : ''}{yieldRate.toFixed(2)}%
-          </div>
+      <div className="p-3 bg-finance-card border-b border-gray-800 flex items-center shadow-md z-10">
+        <button 
+            onClick={handleQuit} 
+            className="p-2 -ml-2 mr-2 text-gray-400 hover:text-white rounded-full hover:bg-slate-800 transition-colors"
+            title="退出训练"
+        >
+            <X size={20} />
+        </button>
+
+        <div className="flex-1 flex justify-between items-center">
+            <div>
+            <h2 className="text-gray-500 text-[10px] uppercase tracking-wider">总资产</h2>
+            <div className={`text-lg font-mono font-bold ${yieldRate >= 0 ? 'text-stock-up' : 'text-stock-down'}`}>
+                {totalAssets.toLocaleString('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 })}
+            </div>
+            </div>
+            <div className="text-right">
+            <h2 className="text-gray-500 text-[10px] uppercase tracking-wider">收益率</h2>
+            <div className={`text-lg font-mono font-bold ${yieldRate >= 0 ? 'text-stock-up' : 'text-stock-down'}`}>
+                {yieldRate > 0 ? '+' : ''}{yieldRate.toFixed(2)}%
+            </div>
+            </div>
         </div>
       </div>
 
       {/* Sub Header - Stock Info */}
       <div className="px-4 py-2 bg-slate-900 flex justify-between text-xs font-mono border-b border-gray-800">
         <span className="text-white">虚拟科技 <span className="text-gray-500">600888</span></span>
-        <span className={dailyChange >= 0 ? 'text-stock-up' : 'text-stock-down'}>
-          现价: {currentDay.close?.toFixed(2)} ({dailyChange > 0 ? '+' : ''}{dailyChange.toFixed(2)}%)
-        </span>
+        <div className="flex space-x-4">
+             <span className={dailyChange >= 0 ? 'text-stock-up' : 'text-stock-down'}>
+              现价: {currentDay.close?.toFixed(2)} ({dailyChange > 0 ? '+' : ''}{dailyChange.toFixed(2)}%)
+            </span>
+            <span className="text-finance-accent">剩余: {daysLeft}天</span>
+        </div>
       </div>
 
       {/* Chart Area */}
-      <div className="flex-1 w-full relative">
+      <div className="flex-1 w-full relative min-h-0 flex flex-col">
         <StockChart data={currentDataSlice} trades={trades} />
         
         {/* Playback Controls Overlay */}
-        <div className="absolute top-2 right-2 flex space-x-2">
+        <div className="absolute top-2 right-12 flex space-x-2 z-20">
            <button 
              onClick={() => setIsPlaying(!isPlaying)}
-             className="bg-slate-700/80 p-2 rounded-full text-white hover:bg-slate-600 backdrop-blur-sm"
+             className="bg-slate-700/80 p-2 rounded-full text-white hover:bg-slate-600 backdrop-blur-sm shadow-lg border border-slate-600"
            >
              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
            </button>
@@ -130,7 +154,7 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
              onClick={() => {
                  speedRef.current = speedRef.current === 500 ? 100 : 500;
              }}
-             className="bg-slate-700/80 p-2 rounded-full text-white hover:bg-slate-600 backdrop-blur-sm"
+             className="bg-slate-700/80 p-2 rounded-full text-white hover:bg-slate-600 backdrop-blur-sm shadow-lg border border-slate-600"
            >
              <FastForward size={16} className={speedRef.current === 100 ? 'text-finance-accent' : ''}/>
            </button>
@@ -138,7 +162,7 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
       </div>
 
       {/* Control Panel */}
-      <div className="bg-finance-card p-4 pb-8 border-t border-gray-800">
+      <div className="bg-finance-card p-4 pb-8 border-t border-gray-800 shrink-0">
         <div className="grid grid-cols-3 gap-4">
           <button 
             onClick={handleBuy}

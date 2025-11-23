@@ -1,3 +1,4 @@
+
 export interface StockData {
   date: string;
   open: number;
@@ -8,6 +9,10 @@ export interface StockData {
   ma5?: number;
   ma10?: number;
   ma20?: number;
+  // MACD Indicators
+  dif?: number;
+  dea?: number;
+  macd?: number;
 }
 
 export enum GameState {
@@ -15,6 +20,8 @@ export enum GameState {
   SIMULATION = 'SIMULATION',
   QUIZ = 'QUIZ',
   RESULT = 'RESULT',
+  HISTORY = 'HISTORY',
+  INDICATOR = 'INDICATOR',
 }
 
 export interface Trade {
@@ -34,6 +41,15 @@ export interface SimulationResult {
   data: StockData[];
 }
 
+export interface GameHistoryItem {
+  id: number;
+  timestamp: string; // ISO date
+  yieldRate: number;
+  profit: number;
+  stockName: string;
+  tradeCount: number;
+}
+
 export interface QuizQuestion {
   id: number;
   type: 'image' | 'text';
@@ -47,4 +63,20 @@ export interface QuizQuestion {
 export interface QuizResult {
   totalQuestions: number;
   correctCount: number;
+}
+
+export interface IndicatorDef {
+  id: string;
+  name: string;
+  fullName: string;
+  category: 'Trend' | 'Oscillator' | 'Volume' | 'Other';
+  description: string;
+  formulaSimple: string;
+  signals: {
+    buy: string;
+    sell: string;
+  };
+  pros: string;
+  cons: string;
+  difficulty: number; // 1-5
 }
