@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { QuizQuestion } from '../types';
 import { getRandomQuizQuestions } from '../services/mockDataService';
 import { ArrowLeft, CheckCircle, XCircle, Trophy, RefreshCw, Home, Brain } from 'lucide-react';
+import { audioService } from '../services/audioService';
 
 interface QuizModeProps {
   onBack: () => void;
@@ -43,12 +45,15 @@ const QuizMode: React.FC<QuizModeProps> = ({ onBack }) => {
     if (index === currentQ.correctIndex) {
       setIsCorrect(true);
       setScore(prev => prev + 1);
+      audioService.playCorrect();
     } else {
       setIsCorrect(false);
+      audioService.playWrong();
     }
   };
 
   const handleNext = () => {
+    audioService.playClick();
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setSelectedOption(null);
@@ -56,6 +61,11 @@ const QuizMode: React.FC<QuizModeProps> = ({ onBack }) => {
       setIsCorrect(false);
     } else {
       setIsFinished(true);
+      if(score > questions.length / 2) {
+        audioService.playWin();
+      } else {
+        audioService.playLoss();
+      }
     }
   };
 
@@ -91,14 +101,20 @@ const QuizMode: React.FC<QuizModeProps> = ({ onBack }) => {
 
                 <div className="w-full space-y-4">
                     <button 
-                        onClick={startNewGame}
+                        onClick={() => {
+                            audioService.playClick();
+                            startNewGame();
+                        }}
                         className="w-full py-4 bg-finance-accent text-black font-bold rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/20 active:scale-95 transition-transform"
                     >
                         <RefreshCw size={20} />
                         <span>再来一次</span>
                     </button>
                     <button 
-                        onClick={onBack}
+                        onClick={() => {
+                            audioService.playClick();
+                            onBack();
+                        }}
                         className="w-full py-4 bg-slate-800 text-gray-300 font-bold rounded-xl flex items-center justify-center space-x-2 border border-slate-700 active:scale-95 transition-transform"
                     >
                         <Home size={20} />
@@ -117,7 +133,7 @@ const QuizMode: React.FC<QuizModeProps> = ({ onBack }) => {
     <div className="flex flex-col h-full bg-finance-bg text-white">
       {/* Header */}
       <div className="p-4 flex items-center bg-finance-card border-b border-gray-800">
-        <button onClick={onBack} className="p-2 -ml-2 text-gray-400 hover:text-white">
+        <button onClick={() => { audioService.playClick(); onBack(); }} className="p-2 -ml-2 text-gray-400 hover:text-white">
           <ArrowLeft size={24} />
         </button>
         <h1 className="flex-1 text-center font-bold text-lg">知识闯关</h1>

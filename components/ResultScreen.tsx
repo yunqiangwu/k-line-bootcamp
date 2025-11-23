@@ -1,10 +1,11 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { SimulationResult } from '../types';
 import StockChart from './StockChart';
 import { Share2, RefreshCw, Home, Trophy, Skull, Zap, TrendingUp, Activity, AlertCircle, Download } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import QRCode from 'qrcode';
+import { audioService } from '../services/audioService';
 
 interface ResultScreenProps {
   result: SimulationResult;
@@ -18,6 +19,14 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ result, onHome, onReplay })
   const profitLoss = finalCapital - initialCapital;
   const shareRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
+
+  useEffect(() => {
+    if (yieldRate > 0) {
+        audioService.playWin();
+    } else {
+        audioService.playLoss();
+    }
+  }, [yieldRate]);
 
   // Determine Rank based on Yield Rate
   const getRank = (rate: number) => {
@@ -82,6 +91,8 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ result, onHome, onReplay })
 
   const handleShare = async () => {
     if (!shareRef.current) return;
+    
+    audioService.playClick();
     setIsSharing(true);
 
     try {
@@ -252,7 +263,10 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ result, onHome, onReplay })
         {/* Action Buttons */}
         <div className="space-y-3 pt-2">
             <button 
-                onClick={onReplay} 
+                onClick={() => {
+                    audioService.playClick();
+                    onReplay();
+                }} 
                 className="w-full bg-finance-accent text-black font-bold py-4 rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/20 active:scale-95 transition-all hover:bg-amber-400"
             >
                 <RefreshCw size={20} />
@@ -269,7 +283,10 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ result, onHome, onReplay })
                     <span>{isSharing ? '生成中...' : '保存战绩'}</span>
                 </button>
                 <button 
-                    onClick={onHome} 
+                    onClick={() => {
+                        audioService.playClick();
+                        onHome();
+                    }} 
                     className="bg-slate-800 border border-slate-700 text-gray-300 font-bold py-3 rounded-xl flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-slate-700"
                 >
                     <Home size={18} />

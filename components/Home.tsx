@@ -1,8 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { GameState } from '../types';
-import { TrendingUp, Award, BookOpen, PieChart, PlayCircle, Zap, Activity } from 'lucide-react';
+import { TrendingUp, Award, BookOpen, PieChart, PlayCircle, Zap, Activity, Volume2, VolumeX } from 'lucide-react';
 import { getGameHistory } from '../services/storageService';
+import { audioService } from '../services/audioService';
 
 interface HomeProps {
   setGameState: (state: GameState) => void;
@@ -10,6 +11,7 @@ interface HomeProps {
 
 const Home: React.FC<HomeProps> = ({ setGameState }) => {
   const [stats, setStats] = useState({ monthlyWinRate: 0, totalProfit: 0, hasData: false });
+  const [isMuted, setIsMuted] = useState(audioService.getMuteState());
 
   useEffect(() => {
     const history = getGameHistory();
@@ -37,6 +39,17 @@ const Home: React.FC<HomeProps> = ({ setGameState }) => {
     }
   }, []);
 
+  const handleNav = (state: GameState) => {
+    audioService.playClick();
+    setGameState(state);
+  };
+
+  const toggleMute = () => {
+    const muted = audioService.toggleMute();
+    setIsMuted(muted);
+    if (!muted) audioService.playClick();
+  };
+
   return (
     <div className="flex flex-col h-full bg-finance-bg text-white relative overflow-hidden">
       {/* Background Elements */}
@@ -50,16 +63,25 @@ const Home: React.FC<HomeProps> = ({ setGameState }) => {
              <div className="w-8 h-8 bg-finance-accent rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20">
                <TrendingUp size={20} className="text-black" />
              </div>
-             <h1 className="text-xl font-black tracking-tight">K-Line Bootcamp</h1>
+             <h1 className="text-xl font-black tracking-tight">欢心K线训练营</h1>
            </div>
            <p className="text-gray-500 text-[10px] mt-1 font-mono tracking-wider ml-1">ALPHA TRADER SIMULATION</p>
         </div>
-        <button 
-          onClick={() => setGameState(GameState.HISTORY)}
-          className="w-10 h-10 rounded-full bg-slate-800/50 border border-slate-700 flex items-center justify-center hover:bg-slate-700 active:scale-95 transition-all backdrop-blur-md"
-        >
-           <PieChart size={20} className="text-gray-300 hover:text-finance-accent transition-colors"/>
-        </button>
+        
+        <div className="flex gap-3">
+            <button 
+                onClick={toggleMute}
+                className="w-10 h-10 rounded-full bg-slate-800/50 border border-slate-700 flex items-center justify-center hover:bg-slate-700 active:scale-95 transition-all backdrop-blur-md"
+            >
+                {isMuted ? <VolumeX size={20} className="text-gray-400"/> : <Volume2 size={20} className="text-finance-accent"/>}
+            </button>
+            <button 
+            onClick={() => handleNav(GameState.HISTORY)}
+            className="w-10 h-10 rounded-full bg-slate-800/50 border border-slate-700 flex items-center justify-center hover:bg-slate-700 active:scale-95 transition-all backdrop-blur-md"
+            >
+            <PieChart size={20} className="text-gray-300 hover:text-finance-accent transition-colors"/>
+            </button>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto px-6 pb-8 z-10 flex flex-col gap-6">
@@ -68,7 +90,7 @@ const Home: React.FC<HomeProps> = ({ setGameState }) => {
         <div className="relative group mt-4">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-finance-accent to-purple-600 rounded-[2.2rem] opacity-50 blur group-hover:opacity-80 transition duration-500"></div>
             <button 
-                onClick={() => setGameState(GameState.SIMULATION)}
+                onClick={() => handleNav(GameState.SIMULATION)}
                 className="relative w-full h-64 rounded-[2rem] bg-slate-900 p-6 flex flex-col justify-between overflow-hidden active:scale-[0.99] transition-transform border border-slate-800 shadow-2xl"
             >
                 {/* Decoration */}
@@ -118,7 +140,7 @@ const Home: React.FC<HomeProps> = ({ setGameState }) => {
         <div className="grid grid-cols-2 gap-4">
              {/* Quiz Mode */}
             <button 
-                onClick={() => setGameState(GameState.QUIZ)}
+                onClick={() => handleNav(GameState.QUIZ)}
                 className="relative h-48 rounded-3xl bg-slate-800/50 border border-slate-700/50 p-5 flex flex-col justify-between hover:bg-slate-800 hover:border-purple-500/50 active:scale-[0.98] transition-all backdrop-blur-sm group shadow-lg"
             >
                 <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -141,7 +163,7 @@ const Home: React.FC<HomeProps> = ({ setGameState }) => {
 
             {/* Indicator Encyclopedia */}
             <button 
-                onClick={() => setGameState(GameState.INDICATOR)}
+                onClick={() => handleNav(GameState.INDICATOR)}
                 className="relative h-48 rounded-3xl bg-slate-800/50 border border-slate-700/50 p-5 flex flex-col justify-between hover:bg-slate-800 hover:border-emerald-500/50 active:scale-[0.98] transition-all backdrop-blur-sm group shadow-lg"
             >
                 <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">

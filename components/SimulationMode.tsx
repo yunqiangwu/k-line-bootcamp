@@ -4,6 +4,7 @@ import { StockData, Trade, SimulationResult } from '../types';
 import StockChart from './StockChart';
 import { generateStockData } from '../services/mockDataService';
 import { Play, Pause, TrendingUp, TrendingDown, FastForward, X } from 'lucide-react';
+import { audioService } from '../services/audioService';
 
 interface SimulationModeProps {
   onEnd: (result: SimulationResult) => void;
@@ -61,6 +62,9 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
 
   const handleBuy = () => {
     if (balance < currentDay.close * 100) return; // Min 1 lot (100 shares)
+    
+    audioService.playBuy(); // SFX
+
     const maxAffordable = Math.floor(balance / currentDay.close);
     // Buy 50% of buying power for simplicity or all in
     const sharesToBuy = Math.floor(maxAffordable * 0.5) || 100; 
@@ -72,6 +76,9 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
 
   const handleSell = () => {
     if (holdings <= 0) return;
+    
+    audioService.playSell(); // SFX
+    
     setBalance(prev => prev + (holdings * currentDay.close));
     setTrades([...trades, { type: 'SELL', price: currentDay.close, date: currentDay.date, amount: holdings }]);
     setHoldings(0);
@@ -94,7 +101,20 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
   };
 
   const handleQuit = () => {
+    audioService.playClick();
     onExit();
+  };
+
+  const togglePlay = () => {
+    audioService.playClick();
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleManualNext = () => {
+    if (!isPlaying) {
+        audioService.playClick();
+        setCurrentIndex(prev => Math.min(prev + 1, fullData.length - 1));
+    }
   };
 
   if (fullData.length === 0) return <div className="text-white p-10">Loading Market Data...</div>;
@@ -145,13 +165,14 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
         {/* Playback Controls Overlay */}
         <div className="absolute top-2 right-12 flex space-x-2 z-20">
            <button 
-             onClick={() => setIsPlaying(!isPlaying)}
+             onClick={togglePlay}
              className="bg-slate-700/80 p-2 rounded-full text-white hover:bg-slate-600 backdrop-blur-sm shadow-lg border border-slate-600"
            >
              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
            </button>
            <button 
              onClick={() => {
+                 audioService.playClick();
                  speedRef.current = speedRef.current === 500 ? 100 : 500;
              }}
              className="bg-slate-700/80 p-2 rounded-full text-white hover:bg-slate-600 backdrop-blur-sm shadow-lg border border-slate-600"
@@ -174,9 +195,7 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ onEnd, onExit }) => {
           </button>
 
           <button 
-            onClick={() => {
-                if (!isPlaying) setCurrentIndex(prev => Math.min(prev + 1, fullData.length - 1));
-            }}
+            onClick={handleManualNext}
             className="flex flex-col items-center justify-center bg-slate-700 text-white py-4 rounded-xl active:scale-95 transition-all"
           >
             <span className="text-sm text-gray-400 mb-1">{isPlaying ? '播放中...' : '下一根K线'}</span>
