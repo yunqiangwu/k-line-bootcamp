@@ -1,11 +1,11 @@
-name: Deploy to gh-pages branch (on PR merge to main)
+name: Deploy to gh-pages branch
 
 on:
   push:
-    branches: [main]
+    branches: [dev]
   pull_request:
     types: [closed]
-    branches: [main]
+    branches: [dev]
 
 permissions:
   contents: write
