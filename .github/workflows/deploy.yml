@@ -2,10 +2,10 @@ name: Deploy to gh-pages branch
 
 on:
   push:
-    branches: [dev]
+    branches: [test2]
   pull_request:
     types: [closed]
-    branches: [dev]
+    branches: [test2]
 
 permissions:
   contents: write
@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CUSTOM_DOMAIN: ${{ secrets.CUSTOM_DOMAIN }}
+      MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,11 +40,22 @@ jobs:
         run: |
           echo "$CUSTOM_DOMAIN" > dist/CNAME
 
-      - name: Deploy to gh-pages
-        uses: peaceiris/actions-gh-pages@v3
+      # - name: Deploy to gh-pages
+      #   uses: peaceiris/actions-gh-pages@v3
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     publish_dir: ./dist
+      #     publish_branch: gh-pages
+      #     user_name: 'GitHub Copilot'
+      #     user_email: 'github-copilot@users.noreply.github.com'
+
+      - name: Minio Deploy
+        if: ${{ env.MINIO_ENDPOINT != '' }}
+        uses: lovellfelix/minio-deploy-action@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          publish_branch: gh-pages
-          user_name: 'GitHub Copilot'
-          user_email: 'github-copilot@users.noreply.github.com'
+          endpoint: ${{ secrets.MINIO_ENDPOINT }}
+          access_key: ${{ secrets.MINIO_ACCESS_KEY }}
+          secret_key: ${{ secrets.MINIO_SECRET_KEY }}
+          bucket: 'test1'
+          source_dir 'dist'
+          target_dir: '/'
