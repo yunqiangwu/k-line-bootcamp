@@ -94,7 +94,7 @@ const Home: React.FC<HomeProps> = ({ setGameState }) => {
                 className="relative w-full h-64 rounded-[2rem] bg-slate-900 p-6 flex flex-col justify-between overflow-hidden active:scale-[0.99] transition-transform border border-slate-800 shadow-2xl"
             >
                 {/* Decoration */}
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1611974765270-ca1258634369?auto=format&fit=crop&q=80&w=1000')] bg-cover bg-center opacity-20 mix-blend-overlay mask-image-gradient"></div>
+                <div className="absolute inset-0 bg-cover bg-center opacity-20 mix-blend-overlay mask-image-gradient"></div>
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-90"></div>
                 
                 {/* Top Badge */}
